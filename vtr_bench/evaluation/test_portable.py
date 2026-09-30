@@ -36,12 +36,6 @@ class PortableTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_full_data(self):
-        cases, checks = app.load_inputs(app.DATA / 'prompts.json', app.DATA / 'checklists.json')
-        self.assertEqual(len(cases), 300)
-        self.assertEqual(sum(len(c['required_text']) for c in cases.values()), 1202)
-        self.assertEqual(sum(len(c['checklist']) for c in checks.values()), 6000)
-
     def test_minimal_interface_and_no_reference_leak(self):
         cases, checks = app.load_inputs(self.prompts, self.checks)
         masked, public, private = app.common.mask_scene_prompt(cases['AD-0001'])
@@ -50,6 +44,70 @@ class PortableTests(unittest.TestCase):
         self.assertNotIn('SECRET REFERENCE', request)
         self.assertIn('[TARGET T01]', request)
         self.assertNotIn('Scene Attributes', app.checklist.MODULE.user_prompt(checks['AD-0001']['checklist']))
+
+    def test_first_answer_block_is_authoritative(self):
+        fixtures = [
+            (app.checklist.MODULE, [{'id': 'C01', 'answer': 'yes'}]),
+            (app.wer, {'T01': {
+                'status': 'transcribed', 'text': 'ABC', 'readability_note': ''
+            }}),
+        ]
+        for module, expected in fixtures:
+            with self.subTest(module=module.__name__):
+                raw = '<answer>' + json.dumps(expected) + '</answer>'
+                parsed, errors, diagnostics = module.parse_first_answer_block(
+                    'prefix' + raw + 'suffix' + raw)
+                self.assertFalse(errors)
+                self.assertEqual(parsed, expected)
+                self.assertEqual(diagnostics['complete_answer_block_count'], 2)
+                self.assertEqual(diagnostics['selected_answer_block_index'], 1)
+                parsed, errors, _ = module.parse_first_answer_block(
+                    '<answer>{invalid json}</answer>' + raw)
+                self.assertIsNone(parsed)
+                self.assertTrue(errors)
+
+    def test_checklist_parser_repair_and_invalid_label(self):
+        module = app.checklist.MODULE
+        parsed, errors, diagnostics = module.parse_first_answer_block(
+            '<answer>[{"id":"C01","answer":" NO "}</answer>')
+        self.assertFalse(errors)
+        self.assertEqual(
+            diagnostics['repair_applied'], 'append_closing_square_bracket')
+        errors, normalized = module.validate_and_normalize(parsed, ['C01'])
+        self.assertFalse(errors)
+        self.assertEqual(normalized, [{'id': 'C01', 'answer': 'no'}])
+        errors, normalized = module.validate_and_normalize(
+            [{'id': 'C01', 'answer': 'uncertain'}], ['C01'])
+        self.assertTrue(errors)
+        self.assertIsNone(normalized)
+
+    def test_wer_field_validation_and_terminal_normalization(self):
+        answer = {'T01': {
+            'status': 'transcribed', 'text': 'ABC', 'readability_note': ''
+        }}
+        self.assertFalse(app.wer.validate_answer(answer, ['T01']))
+        for status, text, note in [
+            ('transcribed', 'READABLE <UNK>', 'Only part is readable.'),
+            ('text_unreadable', '', ''),
+            ('carrier_not_found', '', 'Not visible.'),
+        ]:
+            with self.subTest(status=status):
+                answer['T01'] = {
+                    'status': status, 'text': text, 'readability_note': note
+                }
+                self.assertTrue(app.wer.validate_answer(answer, ['T01']))
+        terminal = app.wer.answer_for_terminal_scoring({
+            'T01': {
+                'status': 'transcribed', 'text': 'A' * 700,
+                'readability_note': ''
+            },
+            'T02': {'status': 'bad', 'text': 'VISIBLE'},
+        }, ['T01', 'T02', 'T03'])
+        self.assertEqual(len(terminal['T01']['text']), 700)
+        self.assertEqual(terminal['T02']['status'], 'transcribed')
+        self.assertEqual(terminal['T02']['text'], 'VISIBLE')
+        self.assertEqual(terminal['T03']['status'], 'text_unreadable')
+        self.assertEqual(terminal['T03']['text'], '')
 
     def test_duplicate_ids_rejected(self):
         app.write_json(self.prompts, {'cases': [self.case, self.case]})

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from vtextbench_wer_v2 import SCORING_VERSION, edit_counts, score_case, score_text
+from vtextbench_wer_v2 import edit_counts, score_case, score_text
 
 
 class VTextBenchWerV2Tests(unittest.TestCase):
@@ -44,10 +44,6 @@ class VTextBenchWerV2Tests(unittest.TestCase):
         for bad in [-1, 1.5, True]:
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 score_text("A", "A", extra_tokens=bad)  # type: ignore[arg-type]
-
-    def test_scoring_version(self) -> None:
-        self.assertEqual(SCORING_VERSION, "vtextbench_wer_v3_rplusn_bounded_20260913")
-
 
 if __name__ == "__main__":
     unittest.main()

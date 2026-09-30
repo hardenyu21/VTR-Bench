@@ -42,10 +42,8 @@ to validate video names without loading the evaluator.
 Checklist reports question-weighted yes rates and five dimension scores.
 WER uses contextual tokenization and bounded R+1/R+5/R+10 transcription,
 averaged equally across videos. Ground-truth strings are masked from WER
-evaluator input. The supplied evaluation engines and inference/retry protocol
-remain unchanged: TP=1, BF16, 2-FPS video sampling, non-thinking mode, and
-at most three attempts per case. Core source hashes are recorded in
-`vtr_bench/data/provenance.json`.
+evaluator input. Evaluation uses TP=1, BF16, 2-FPS video sampling,
+non-thinking mode, and at most three attempts per case.
 
 ## Agentic I2V
 

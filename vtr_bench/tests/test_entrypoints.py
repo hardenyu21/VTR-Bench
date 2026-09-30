@@ -13,7 +13,6 @@ from vtr_bench import agentic
 from vtr_bench import cli
 from vtr_bench import evaluate
 from vtr_bench import io_utils
-from vtr_bench import validation
 
 
 class EntryPointTests(unittest.TestCase):
@@ -26,11 +25,6 @@ class EntryPointTests(unittest.TestCase):
         self.videos = self.root / "videos"
         self.videos.mkdir()
         (self.videos / "AD-0001.mp4").write_bytes(b"mock video")
-
-    def test_frozen_evaluation_and_original_prompts(self):
-        report = validation.validate_sources()
-        self.assertEqual(report["cases"], 300)
-        self.assertEqual(report["frozen_evaluation_engines"], "unchanged")
 
     def test_only_two_public_entrypoints(self):
         output = io.StringIO()

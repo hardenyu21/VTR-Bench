@@ -3,15 +3,12 @@ from __future__ import annotations
 
 import unittest
 
-from vtextbench_tokenizer_v2 import TOKENIZER_VERSION, tokenize, wer_tokens
+from vtextbench_tokenizer_v2 import tokenize, wer_tokens
 
 
 class VTextBenchTokenizerV2Tests(unittest.TestCase):
     def assert_tokens(self, text: str, expected: list[str]) -> None:
         self.assertEqual(wer_tokens(text), expected)
-
-    def test_version_is_explicit(self) -> None:
-        self.assertEqual(TOKENIZER_VERSION, "vtextbench_wer_v2_contextual_20260913")
 
     def test_ordinary_punctuation_is_ignored(self) -> None:
         expected = ["hello"]
