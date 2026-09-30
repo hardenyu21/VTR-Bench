@@ -43,6 +43,12 @@ VTR-Bench brings together:
 Each scenario contains **60 prompts**. Every prompt has **20 binary questions**,
 for a total of **6,000 CoQ questions** and **1,202 required-text blocks**.
 
+<p align="center">
+  <img src="assets/statistics.png" width="100%" alt="VTR-Bench dataset statistics: scenario taxonomy, text block counts, and distributions of total text length per video and individual text block length.">
+  <br>
+  <em>Dataset statistics of VTR-Bench.</em>
+</p>
+
 | Scenario | Case prefix | Prompts |
 | :--- | :---: | ---: |
 | Advertisement | `AD` | 60 |
