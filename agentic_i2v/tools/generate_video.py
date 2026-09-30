@@ -17,6 +17,11 @@ class GenerateVideoTool:
             context.graph.require(arguments.parent_video_id, CandidateKind.VIDEO)
         candidate_id = context.graph.next_id(CandidateKind.VIDEO)
         output = context.artifacts.candidate_path("video", candidate_id, ".mp4")
+        # An interrupted request may have written a video before checkpointing it.
+        # A new tool action must not reuse that path for a different prompt.
+        while output.exists() or output.with_suffix(".metadata.json").exists():
+            candidate_id = f"vid-{int(candidate_id.split('-')[1]) + 1:04d}"
+            output = context.artifacts.candidate_path("video", candidate_id, ".mp4")
         composed_h3_prompt, motion_refinement = compose_h3_prompt(
             context.state.prompt_en, arguments.motion_refinement
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.metadata
+import json
 import os
 import subprocess
 import time
@@ -81,11 +82,38 @@ class H3Backend:
 
     def generate(self, *, image_path: Path, motion_prompt: str, output: Path) -> dict[str, Any]:
         metadata_path = output.with_suffix(".metadata.json")
+        parameters = {
+            "width": self.profile.width,
+            "height": self.profile.height,
+            "fps": FPS,
+            "requested_frames": REQUESTED_FRAMES,
+            "dropped_initial_frames": 1,
+            "delivered_frames": DELIVERED_FRAMES,
+            "duration_seconds": DELIVERED_FRAMES / FPS,
+            "steps": self.profile.steps,
+            "flow_shift": self.profile.flow_shift,
+            "audio_flow_shift": self.profile.extra_args["audio_flow_shift"],
+        }
+        identity = {
+            "model": str(self.profile.resolved_model(self.models_root)),
+            "task": "fl2va",
+            "input_image_sha256": sha256_file(image_path),
+            "motion_prompt": motion_prompt,
+            "seed": SEED,
+            "parallel": asdict(self.profile.parallel),
+            "engine_args": self.profile.engine_args,
+        }
         if output.is_file() and metadata_path.is_file():
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if any(metadata.get(key) != value for key, value in identity.items()) or any(
+                metadata.get("parameters", {}).get(key) != value
+                for key, value in parameters.items()
+            ):
+                raise RuntimeError("Existing video belongs to a different generation request; use a new output path")
+            if sha256_file(output) != metadata.get("sha256"):
+                raise RuntimeError("Existing video checksum does not match its metadata")
             _verify_video(output, DELIVERED_FRAMES)
-            import json
-
-            return json.loads(metadata_path.read_text(encoding="utf-8"))
+            return metadata
         with Image.open(image_path) as source:
             image = source.convert("RGB")
         payload = {"prompt": motion_prompt, "multi_modal_data": {"image": image}}
@@ -117,31 +145,16 @@ class H3Backend:
             enforce_exact_duration(output, DELIVERED_FRAMES / FPS)
         media = _verify_video(output, DELIVERED_FRAMES)
         metadata = {
-            "model": str(self.profile.resolved_model(self.models_root)),
-            "task": "fl2va",
-            "input_image": str(image_path.relative_to(self.project_root)),
-            "input_image_sha256": sha256_file(image_path),
-            "motion_prompt": motion_prompt,
-            "seed": SEED,
+            **identity,
+            "input_image": os.path.relpath(image_path, self.project_root),
             "parameters": {
-                "width": self.profile.width,
-                "height": self.profile.height,
-                "fps": FPS,
-                "requested_frames": REQUESTED_FRAMES,
-                "dropped_initial_frames": 1,
-                "delivered_frames": DELIVERED_FRAMES,
-                "duration_seconds": DELIVERED_FRAMES / FPS,
+                **parameters,
                 "internal_generated_frames": internal_frames,
-                "steps": self.profile.steps,
-                "flow_shift": self.profile.flow_shift,
-                "audio_flow_shift": self.profile.extra_args["audio_flow_shift"],
             },
-            "parallel": asdict(self.profile.parallel),
-            "engine_args": self.profile.engine_args,
             "elapsed_seconds": elapsed,
             "peak_memory_mb": _peak_memory_mb(raw_output),
             "media": media,
-            "output": str(output.relative_to(self.project_root)),
+            "output": os.path.relpath(output, self.project_root),
             "size_bytes": output.stat().st_size,
             "sha256": sha256_file(output),
             "runtime": {

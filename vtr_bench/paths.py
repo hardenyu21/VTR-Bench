@@ -20,7 +20,7 @@ def agentic_runs_root(root: pathlib.Path) -> pathlib.Path:
     """Resolve the run directory shared by the single-case and batch clients."""
     value = os.environ.get("VTR_BENCH_RUNS_ROOT")
     path = (
-        pathlib.Path(value)
+        pathlib.Path(value).expanduser()
         if value
         else root / "generated_videos/experiments/agentic"
     )

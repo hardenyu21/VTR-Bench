@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..schemas import CandidateKind, FinalizeCandidateInput, ToolResult
+from ..schemas import CandidateKind, CandidateStatus, FinalizeCandidateInput, ToolResult
 from ..media import validate_deliverable
 from .base import ToolContext, validate_rollbacks
 
@@ -13,6 +13,8 @@ class FinalizeCandidateTool:
         if arguments.candidate_id in arguments.rollback_candidate_ids:
             raise ValueError("The finalized candidate cannot also be rolled back")
         candidate = context.graph.require(arguments.candidate_id, CandidateKind.VIDEO)
+        if candidate.status in {CandidateStatus.REJECTED, CandidateStatus.ROLLED_BACK}:
+            raise ValueError(f"Cannot finalize {candidate.status.value} candidate {candidate.candidate_id}")
         candidate_path = context.artifacts.resolve(candidate.artifact_path)
         recorded_media = candidate.inputs.get("service_result", {}).get("validated_media", {})
         media = validate_deliverable(

@@ -12,7 +12,9 @@ from pathlib import Path
 
 from vtr_bench import paths
 
-from .media import validate_deliverable
+from .cli import load_case
+from .schemas import BudgetState
+from .state import CheckpointStore
 from .state.artifact_store import ArtifactStore
 
 
@@ -57,6 +59,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if not 0 <= args.worker_index < args.worker_count:
         raise ValueError("worker-index must be within worker-count")
+    if args.max_attempts < 1:
+        raise ValueError("max-attempts must be positive")
     project = paths.project_root()
     runs_root = paths.agentic_runs_root(project)
     prompt_file = args.prompt_file.expanduser().resolve(strict=True)
@@ -94,14 +98,24 @@ def main(argv: list[str] | None = None) -> int:
     save(None, "starting")
     for case_id in assigned:
         deliverable = runs_root / "final_videos" / f"{case_id}.mp4"
-        if deliverable.is_file():
-            try:
-                validate_deliverable(deliverable)
+        artifacts = ArtifactStore(runs_root, case_id)
+        checkpoints = CheckpointStore(artifacts)
+        _, prompt = load_case(prompt_file, case_id)
+        try:
+            if artifacts.state_path.is_file():
+                state = checkpoints.create_or_load(case_id, prompt, BudgetState())
+            elif deliverable.exists():
+                raise RuntimeError("Existing deliverable has no checkpoint to verify its prompt")
+            else:
+                state = None
+            if state is not None and state.completed:
                 completed.append(case_id)
                 save(None, "running")
                 continue
-            except Exception:
-                pass
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+            failed[case_id] = f"Cannot resume case: {exc}"
+            save(None, "running_with_failures")
+            continue
         log_path = log_root / f"{case_id}.log"
         success = False
         for attempt in range(1, args.max_attempts + 1):
@@ -121,17 +135,18 @@ def main(argv: list[str] | None = None) -> int:
                     stderr=subprocess.STDOUT,
                     text=True,
                 )
-            if deliverable.is_file():
-                try:
-                    validate_deliverable(deliverable)
+            try:
+                if not artifacts.state_path.is_file():
+                    raise RuntimeError(f"attempt {attempt} exited {result.returncode} without a checkpoint")
+                state = checkpoints.create_or_load(case_id, prompt, BudgetState())
+                if state.completed:
                     completed.append(case_id)
                     failed.pop(case_id, None)
                     success = True
                     break
-                except Exception as exc:
-                    failed[case_id] = f"invalid deliverable after attempt {attempt}: {exc}"
-            else:
-                failed[case_id] = f"attempt {attempt} exited {result.returncode}"
+                failed[case_id] = f"attempt {attempt} exited {result.returncode} without finalizing"
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+                failed[case_id] = f"invalid checkpoint after attempt {attempt}: {exc}"
             save(case_id, "retry_wait")
             time.sleep(min(60, 10 * attempt))
         if not success:
