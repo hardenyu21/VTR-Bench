@@ -220,7 +220,7 @@ class ModelProfile:
                 prompt = str(caption)
         else:
             # Final VTextBench prompt records expose the canonical generation
-            # text as ``prompt_en``.  Older benchmark fixtures use
+            # text as ``prompt_en``.  Older benchmark records use
             # ``plain_prompt``; accept both without requiring a disposable
             # adapter file for an otherwise immutable prompt record.
             plain_prompt = prompt_suite.get("plain_prompt", prompt_suite.get("prompt_en"))
@@ -747,4 +747,3 @@ class VideoGenerator:
             "output": str(output.resolve()),
             "notes": self.profile.notes,
         }
-

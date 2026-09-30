@@ -11,6 +11,9 @@ sys.path.insert(0, str(ROOT / 'engine'))
 from vtextbench_wer_v2 import score_case, SCORING_VERSION
 from vtextbench_tokenizer_v2 import TOKENIZER_VERSION
 
+DIMENSIONS = ('Entity Presence', 'Spatial Relationship', 'Temporal Consistency',
+              'Motion Adherence', 'Scene Attributes')
+
 
 def load(path):
     return json.loads(path.read_text(encoding='utf-8'))
@@ -22,8 +25,6 @@ def summarize_run(root, task, expected_ids=None, missing_ids=None, ns=(1, 5, 10)
     expected_keys = {(v['profile'], v['case_id']) for v in manifest['job_identities']}
     if expected_ids is not None and {key[1] for key in expected_keys} != set(expected_ids):
         raise ValueError('Requested IDs disagree with run manifest')
-    mapping = load(ROOT.parent / 'data/category_to_dimension.json')
-    mapping = mapping.get('category_to_dimension', mapping)
     rows = []
     statuses = Counter()
     unscored = []
@@ -48,8 +49,8 @@ def summarize_run(root, task, expected_ids=None, missing_ids=None, ns=(1, 5, 10)
             for item in result['items']:
                 if item['answer'] not in ('yes', 'no'):
                     raise ValueError(f'{file}: unexpected label')
-                d = item.get('dimension') or mapping[item['category']]
-                if d not in mapping.values():
+                d = item.get('dimension') or item.get('category')
+                if d not in DIMENSIONS:
                     raise ValueError(f'{file}: unknown dimension {d}')
                 dims[d]['total'] += 1
                 dims[d]['yes'] += item['answer'] == 'yes'
@@ -66,7 +67,7 @@ def summarize_run(root, task, expected_ids=None, missing_ids=None, ns=(1, 5, 10)
             total = sum(r['total'] for r in group)
             out.update(yes_count=yes, item_count=total, yes_rate=yes / total if total else None)
             out['dimensions'] = {}
-            for d in dict.fromkeys(mapping.values()):
+            for d in DIMENSIONS:
                 values = [r['dimensions'][d] for r in group if d in r['dimensions']]
                 dy = sum(v['yes'] for v in values)
                 dt = sum(v['total'] for v in values)

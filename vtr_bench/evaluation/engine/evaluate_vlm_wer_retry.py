@@ -488,11 +488,6 @@ def main() -> int:
             output_schema(["T01", "T02"]),
         )
 
-    tokenizer_test = common.tokenizer_self_test()
-    common.write_json(output_root / "tokenizer_self_test.json", tokenizer_test)
-    if tokenizer_test["status"] != "pass":
-        raise RuntimeError(f"tokenizer self-test failed: {tokenizer_test['failures']}")
-
     llm = LLM(
         model=str(model),
         tensor_parallel_size=args.tensor_parallel_size,

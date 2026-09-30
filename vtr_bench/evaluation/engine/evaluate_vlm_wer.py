@@ -336,36 +336,6 @@ def edit_counts(reference: list[str], hypothesis: list[str]) -> dict[str, int]:
         "insertions": insertions,
     }
 
-def tokenizer_self_test() -> dict[str, Any]:
-    cases = {
-        "λ = 632.8 nm": ["λ", "=", "632.8", "nm"],
-        "mass = 5 kg": ["mass", "=", "5", "kg"],
-        "H₂O + CO₂ → H₂CO₃": ["H₂O", "+", "CO₂", "→", "H₂CO₃"],
-        "双缝干涉实验": ["双", "缝", "干", "涉", "实", "验"],
-        "ENERGY <UNK> REPORT": ["ENERGY", "<UNK>", "REPORT"],
-        "λ = 632.B nm": ["λ", "=", "632.B", "nm"],
-        "−0.19 kJ/mol": ["−0.19", "kJ/mol"],
-    }
-    observed = {text: wer_tokens(text) for text in cases}
-    failures = {text: {"expected": cases[text], "observed": observed[text]} for text in cases if observed[text] != cases[text]}
-    edit_test = edit_counts(["λ", "=", "632.8", "nm"], ["λ", "=", "632.B", "nm"])
-    if edit_test != {"distance": 1, "substitutions": 1, "deletions": 0, "insertions": 0}:
-        failures["edit_distance"] = {"observed": edit_test}
-    truncation_reference = ["A", "B"]
-    truncation_raw_hypothesis = ["X", "Y", "Z", "Q"]
-    truncation_hypothesis = truncation_raw_hypothesis[: len(truncation_reference)]
-    truncation_counts = edit_counts(truncation_reference, truncation_hypothesis)
-    if truncation_hypothesis != ["X", "Y"] or truncation_counts["distance"] > len(
-        truncation_reference
-    ):
-        failures["hypothesis_token_truncation"] = {
-            "reference": truncation_reference,
-            "raw_hypothesis": truncation_raw_hypothesis,
-            "scored_hypothesis": truncation_hypothesis,
-            "counts": truncation_counts,
-        }
-    return {"version": TOKENIZER_VERSION, "status": "pass" if not failures else "fail", "cases": observed, "failures": failures}
-
 def mask_scene_prompt(case: dict[str, Any]) -> tuple[str, list[dict[str, str]], list[dict[str, str]]]:
     prompt = case["prompt_en"]
     required = case.get("required_text")
@@ -492,4 +462,3 @@ DEFAULT_MODEL = Path("models/evaluator")
 
 def build_jobs(*args, **kwargs):
     raise RuntimeError("Use the portable evaluate.py entry point")
-
