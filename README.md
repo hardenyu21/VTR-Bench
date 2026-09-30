@@ -1,59 +1,144 @@
-# VTR-Bench
+<div align="center">
+  <h1>VTR-Bench</h1>
+  <p><b>Video Text Rendering Benchmark and Agentic Generation</b></p>
+  <p>
+    <a href="https://huggingface.co/datasets/hardenyu/VTR-Bench"><b>Hugging Face Dataset</b></a>
+    &nbsp; | &nbsp;
+    <a href="#evaluation"><b>Evaluation</b></a>
+    &nbsp; | &nbsp;
+    <a href="#agentic-generation"><b>Agentic Generation</b></a>
+  </p>
+</div>
 
-Video text rendering benchmark with two entrypoints: **evaluation** and
-**Agentic I2V**. The original 300 prompts, 6,000 checklist questions, and
-1,202 text references are included.
+## Overview
 
-[Benchmark videos on Hugging Face](https://huggingface.co/datasets/hardenyu/VTR-Bench)
-are downloaded separately. Videos must be named with their benchmark IDs,
-such as `AD-0001.mp4` or `SCI-0060.mp4`.
+Can a video generator render the requested text while preserving the scene,
+layout, and motion described in a prompt? **VTR-Bench** evaluates these two
+complementary aspects of video generation: **text fidelity** and **instruction
+following**.
+
+The benchmark places text within advertisements, scientific scenes, user
+interfaces, cultural settings, and daily life. Each prompt specifies the exact
+text to render and its carrier, together with the surrounding visual content.
+Evaluation combines text transcription with a scene-specific checklist, rather
+than treating correct spelling as a substitute for a faithful video.
+
+This repository provides the benchmark annotations, a unified evaluation
+pipeline, and an **Agentic I2V framework**. The framework plans a first frame,
+inspects image and video candidates, and uses visual feedback to refine generation
+while retaining the original video request.
+
+## Benchmark
+
+VTR-Bench contains **300 prompts**, **1,202 required-text blocks**, and **6,000
+checklist questions**: 60 prompts per domain and 20 questions per prompt.
+
+| Domain | ID prefix | Prompts |
+| --- | --- | ---: |
+| Advertisement | `AD` | 60 |
+| Science | `SCI` | 60 |
+| User Interface | `UI` | 60 |
+| Culture | `CULT` | 60 |
+| Daily Life | `LIFE` | 60 |
+
+The final annotations are included in the repository:
+
+- [prompts.json](vtr_bench/data/prompts.json): case IDs, original English prompts,
+  scene metadata, and verbatim text references.
+- [checklists.json](vtr_bench/data/checklists.json): per-case questions across
+  Entity Presence, Spatial Relationship, Temporal Consistency, Motion Adherence,
+  and Scene Attributes.
+
+Generated videos are distributed separately on
+[Hugging Face](https://huggingface.co/datasets/hardenyu/VTR-Bench/tree/main/generated_videos).
+For evaluation, download one model's video folder or use your own generated
+videos. Name each MP4 with its benchmark ID, for example `AD-0001.mp4`.
+
+## Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/hardenyu21/VTR-Bench.git
+cd VTR-Bench
+```
+
+Both workflows use Linux, Python 3.12, NVIDIA GPUs, and `ffmpeg`/`ffprobe` on
+`PATH`. Install evaluation and generation in **separate environments**: their
+reference runtimes require different vLLM versions. Model checkpoints and API
+credentials are supplied by the user.
 
 ## Evaluation
 
-Use Python 3.12, a compatible NVIDIA GPU, a local Qwen3.8-27B or Qwen3.6-27B
-evaluator checkpoint, and `ffmpeg`/`ffprobe`.
+### 1. Set up the evaluator
+
+Prepare a local Qwen3.8-27B or Qwen3.6-27B evaluator checkpoint, then install the
+evaluation environment:
 
 ```bash
 python3.12 -m venv .venv-eval
-.venv-eval/bin/python -m pip install -e . -r requirements/evaluation.txt
 source .venv-eval/bin/activate
+python -m pip install -e . -r requirements/evaluation.txt
 export VTR_EVALUATOR_MODEL=/path/to/evaluator-checkpoint
 ```
 
-Configure the evaluator once. Then give only the video path:
+### 2. Provide a video path
 
 ```bash
 vtr-bench evaluate /path/to/videos
-# Or evaluate a single benchmark video:
+```
+
+A single benchmark video is also supported:
+
+```bash
 vtr-bench evaluate /path/to/AD-0001.mp4
 ```
 
-The command runs Checklist and WER sequentially on the same evaluator and
-automatically uses the bundled benchmark data. No task, prompt, checklist,
-or profile selection is needed. It evaluates the videos present in the
-folder; absent benchmark IDs are reported, not scored as failures. Unknown
-or duplicate IDs are rejected. Existing matching evaluations resume.
+The command automatically matches filenames to the bundled annotations and runs
+both metrics sequentially. A directory should contain the MP4s directly, without
+an additional nested model folder. Partial collections are supported: missing
+IDs are reported but are not scored as failures. Unknown or duplicate IDs are
+rejected, and compatible existing evaluations are resumed.
 
-Read `results/<input-name>/metrics.json` for both metrics. Detailed per-case
-records and logs are retained under `details/` in that result directory.
-Use `--output /path/to/results` to choose another destination, or `--dry-run`
-to validate video names without loading the evaluator.
+### 3. Read the scores
 
-Checklist reports question-weighted yes rates and five dimension scores.
-WER uses contextual tokenization and bounded R+1/R+5/R+10 transcription,
-averaged equally across videos. Ground-truth strings are masked from WER
-evaluator input. Evaluation uses TP=1, BF16, 2-FPS video sampling,
-non-thinking mode, and at most three attempts per case.
+Results are written to `results/<input-name>/metrics.json`, with per-case outputs
+and logs under `details/`. Use `--output /path/to/results` to choose a destination.
 
-## Agentic I2V
+- **Checklist score ↑**: question-weighted yes rate, reported overall and across
+  the five instruction-following dimensions.
+- **Word Error Rate (WER) ↓**: transcription error against the required text,
+  reported with `R+1`, `R+5`, and `R+10` hypothesis-token caps, where `R` is the
+  reference token count. Case scores are bounded to `[0, 1]` and averaged equally
+  across videos. The evaluator does not receive the target strings when
+  transcribing the video.
 
-Use a separate generation environment; the reference H3 backend and evaluation
-runtime pin different vLLM versions.
+The reference protocol uses BF16, tensor parallelism of 1, 2-FPS video sampling,
+non-thinking mode, and at most three attempts per case. To check filenames without
+loading the evaluator, use `vtr-bench evaluate /path/to/videos --dry-run`.
+
+## Agentic Generation
+
+The Central Agent uses `qwen3.7-plus` to plan and inspect candidates, Qwen-Image
+(`qwen-image-3.0`) to generate or edit keyframes, and a resident MiniMax-H3 service
+for image-to-video generation. It can revise a keyframe or motion guidance based
+on visual feedback and select a final video from the generated candidates.
+
+**Every video request includes the verbatim original prompt plus an additive
+motion refinement.** A verbatim copy of the original prompt at the start of the
+refinement is removed; the original request remains authoritative, including all
+required text. Planning does not replace the original prompt.
+
+### 1. Configure generation
+
+Prepare the MiniMax-H3 FL2VA checkpoint at
+`/path/to/models/MiniMax-H3/FL2VA`. The reference service uses four GPUs with
+sufficient memory and disables CPU offload by default.
 
 ```bash
 python3.12 -m venv .venv-gen
-.venv-gen/bin/python -m pip install -e . -r requirements/generation-reference.txt
 source .venv-gen/bin/activate
+python -m pip install -e . -r requirements/generation-reference.txt
 export VTR_BENCH_PROJECT_ROOT="$PWD"
 export VTEXTBENCH_MODELS_ROOT=/path/to/models
 export BAILIAN_API_KEY=YOUR_KEY
@@ -61,37 +146,53 @@ export BAILIAN_BASE_URL=https://YOUR_WORKSPACE.cn-beijing.maas.aliyuncs.com/comp
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 ```
 
-Prepare `MiniMax-H3/FL2VA` below the model directory, then start the resident
-service once:
+Use an API endpoint with access to the configured chat and image models. See
+[.env.example](.env.example) for the available environment variables; export them
+explicitly in each shell, since the file is not loaded automatically.
+
+### 2. Start the persistent video service
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 vtr-bench agentic --serve
 ```
 
-In another configured shell, run one case or all 300:
+Keep this process running. Once loading finishes, the service is available at
+`http://127.0.0.1:18123` and serializes requests through one shared H3 engine.
+Keep it bound to loopback: the reference service has no network authentication.
+
+### 3. Generate videos
+
+In another shell, activate `.venv-gen`, enter the repository, and export the same
+configuration as above. Run one case, or omit the ID to process all 300 prompts:
 
 ```bash
 vtr-bench agentic --case-id AD-0001
 vtr-bench agentic
 ```
 
-The Central Agent uses `qwen3.7-plus` and Qwen-Image to plan, generate, inspect,
-and select candidates. Each video request preserves the verbatim original
-prompt and appends a deduplicated motion refinement. The H3 service stays
-loaded and serializes requests. It delivers 240 frames at 24 FPS (10 seconds),
-discarding the conditioning frame and trimming audio by the same offset.
+The default output is **1344×768, 240 frames, 24 FPS, and 10 seconds**, with seed
+42. H3 is requested to produce 241 frames; the conditioning frame is discarded,
+and any audio is trimmed by the same 1/24-second offset.
 
-Outputs, first/intermediate images, and traces remain under
-`generated_videos/experiments/agentic/`; selected videos are in `final_videos/`.
-Defaults are 20 actions, 30 API calls, and three exploratory video generations.
-Rescue is recorded separately and may generate outside the exploration budget.
-See `.env.example` for configuration. Bind the reference service to loopback;
-it has no network authentication.
+Selected videos are saved as
+`generated_videos/experiments/agentic/final_videos/<ID>.mp4`. Each case directory
+retains its first and intermediate images, video candidates, inspection reports,
+and agent trace. The default exploration budget is 20 actions, 30 API calls, and
+three video generations. If exploration cannot finalize a result, a separate
+rescue path may generate an additional candidate; its use is recorded in the
+case outputs.
 
-For ordinary baseline generation, follow the official
+For non-agentic baseline generation, refer to the official
 [vLLM-Omni recipes](https://github.com/vllm-project/vllm-omni/tree/main/recipes).
-No separate baseline, download, upload, or ablation CLI is bundled.
+
+## Acknowledgements
+
+The generation runtime builds on
+[vLLM-Omni](https://github.com/vllm-project/vllm-omni), and keyframe generation
+uses [Qwen-Image](https://github.com/QwenLM/Qwen-Image). We thank the developers of
+these projects and the underlying models.
 
 ## License
 
-Apache-2.0. External models and dependencies retain their own licenses.
+The code is released under the [Apache-2.0 License](LICENSE). External models,
+datasets, and dependencies are subject to their respective licenses and terms.
