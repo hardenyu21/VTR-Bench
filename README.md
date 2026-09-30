@@ -2,13 +2,9 @@
   <h1>VTR-Bench</h1>
   <h3>A Systematic Benchmark for Evaluating Visual Text Rendering in Video Generation</h3>
   <p>
-    <a href="https://huggingface.co/datasets/hardenyu/VTR-Bench">🤗 Dataset &amp; Videos</a>
+    <a href="https://huggingface.co/datasets/hardenyu/VTR-Bench">🤗 Hugging Face</a>
     &nbsp; | &nbsp;
-    <a href="#main-results">📊 Results</a>
-    &nbsp; | &nbsp;
-    <a href="#evaluation">🔎 Evaluation</a>
-    &nbsp; | &nbsp;
-    <a href="#agentic-generation">🎬 Agentic Generation</a>
+    📄 Paper (arXiv submission in progress)
   </p>
   <p><b>300 prompts · 5 application scenarios · 1,202 text blocks · 11 video generation models</b></p>
 </div>
