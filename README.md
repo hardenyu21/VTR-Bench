@@ -149,8 +149,6 @@ vtr-bench evaluate /path/to/AD-0001.mp4 --output /path/to/results
 Partial collections are supported. Missing IDs are reported and excluded from
 scoring; unknown or duplicate IDs are rejected. Compatible existing runs resume
 automatically. Use `--dry-run` to check the inputs without loading the evaluator.
-If any selected video remains unscored, the command reports those cases and exits
-with status `2`; available scores are retained in the results file.
 
 ### 3. Read the results
 
@@ -251,8 +249,6 @@ vtr-bench agentic
 Final videos are saved to
 `generated_videos/experiments/agentic/final_videos/<ID>.mp4`. Each case also retains
 image and video candidates, visual feedback, and the Director agent's decisions.
-Batch resumption verifies the saved prompt and candidate files before reusing a
-completed result. Use a separate runs directory when changing the prompt set.
 
 <details>
 <summary><b>Generation settings and outputs</b></summary>

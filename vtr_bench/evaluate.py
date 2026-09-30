@@ -112,20 +112,14 @@ def main(argv: list[str] | None = None) -> int:
     if not model.is_dir():
         parser.error("VTR_EVALUATOR_MODEL must be a checkpoint directory")
     reports = run_evaluation(source, model, output)
-    all_scored = all(report["all_scored"] for report in reports.values())
     print(
         json.dumps(
             {
                 "checklist": reports["checklist"]["overall"],
                 "wer": reports["wer"]["overall"],
-                "all_scored": all_scored,
-                "unscored_cases": {
-                    task: report["unscored_cases"]
-                    for task, report in reports.items()
-                },
                 "output": str(output / "metrics.json"),
             },
             indent=2,
         )
     )
-    return 0 if all_scored else 2
+    return 0

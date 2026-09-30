@@ -28,7 +28,6 @@ class WorkflowRuntime:
         self.policy = ActionPolicy(context.state.budget)
 
     def recover_interrupted_calls(self) -> None:
-        """Close interrupted tool turns before sending another agent request."""
         changed = False
         for record in self.context.state.tool_calls:
             if record.status == "running":
@@ -36,44 +35,7 @@ class WorkflowRuntime:
                 record.error = "Interrupted before a complete tool result was checkpointed"
                 record.finished_at = timestamp()
                 changed = True
-        records = {record.call_id: record for record in self.context.state.tool_calls}
-        repaired = []
-        pending = {}
-
-        def close_pending() -> None:
-            nonlocal changed
-            for call_id, call in pending.items():
-                record = records.get(call_id)
-                if record is not None and record.status == "complete":
-                    payload = record.result
-                else:
-                    error = record.error if record else None
-                    payload = {"error": error or (
-                        "Interrupted before this tool call was executed; "
-                        "no result is available"
-                    )}
-                repaired.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": call_id,
-                        "name": call["function"]["name"],
-                        "content": json.dumps(payload, ensure_ascii=False),
-                    }
-                )
-                changed = True
-            pending.clear()
-
-        for message in self.context.state.messages:
-            if message.get("role") == "tool":
-                pending.pop(message.get("tool_call_id"), None)
-            else:
-                close_pending()
-            repaired.append(message)
-            if message.get("role") == "assistant":
-                pending.update({call["id"]: call for call in message.get("tool_calls", [])})
-        close_pending()
         if changed:
-            self.context.state.messages = repaired
             self.checkpoints.save(self.context.state)
 
     def run(self) -> dict[str, Any]:

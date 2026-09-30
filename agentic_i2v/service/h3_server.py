@@ -17,9 +17,8 @@ from .h3_backend import DELIVERED_FRAMES, FPS, REQUESTED_FRAMES, SEED, H3Backend
 HOST = os.environ.get("VTEXTBENCH_H3_SERVICE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("VTEXTBENCH_H3_SERVICE_PORT", "18123"))
 PROJECT_ROOT = paths.project_root()
-MODELS_ROOT = Path(os.environ.get("VTEXTBENCH_MODELS_ROOT", PROJECT_ROOT / "models")).expanduser().resolve()
+MODELS_ROOT = Path(os.environ.get("VTEXTBENCH_MODELS_ROOT", PROJECT_ROOT / "models")).resolve()
 OUTPUT_ROOT = (PROJECT_ROOT / "generated_videos").resolve()
-RUNS_ROOT = paths.agentic_runs_root(PROJECT_ROOT)
 
 
 class ServiceState:
@@ -48,7 +47,7 @@ class ServiceState:
                 "duration_seconds": DELIVERED_FRAMES / FPS,
                 "serialization": "single shared engine; one generation at a time",
                 "cpu_offload": bool(
-                    self.backend.profile.engine_args.get("enable_cpu_offload", False)
+                    STATE.backend.profile.engine_args.get("enable_cpu_offload", False)
                 ),
             }
 
@@ -60,15 +59,13 @@ def checked_source(value: Any) -> Path:
     path = Path(str(value)).expanduser().resolve(strict=True)
     if not path.is_file():
         raise ValueError(f"Input image is not a file: {path}")
-    if not any(path.is_relative_to(root) for root in (PROJECT_ROOT, RUNS_ROOT)):
-        raise ValueError("Input image must be within the project or configured runs directory")
+    path.relative_to(PROJECT_ROOT)
     return path
 
 
 def checked_output(value: Any) -> Path:
     path = Path(str(value)).expanduser().resolve(strict=False)
-    if not any(path.is_relative_to(root) for root in (OUTPUT_ROOT, RUNS_ROOT)):
-        raise ValueError("Output must be within generated_videos or the configured runs directory")
+    path.relative_to(OUTPUT_ROOT)
     if path.suffix.lower() != ".mp4":
         raise ValueError("Output must be an .mp4 file")
     return path

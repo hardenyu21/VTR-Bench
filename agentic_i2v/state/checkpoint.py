@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
-from agentic_i2v.media import validation
-
-from ..schemas import BudgetState, CandidateKind, CandidateStatus, WorkflowState, timestamp
+from ..schemas import BudgetState, WorkflowState, timestamp
 from .artifact_store import ArtifactStore, sha256_file
 
 
@@ -23,8 +21,6 @@ class CheckpointStore:
             if state.case_id != case_id or state.prompt_sha256 != expected or state.prompt_en != prompt_en:
                 raise RuntimeError("Checkpoint identity or immutable prompt does not match this request")
             self.validate_artifacts(state)
-            if state.completed:
-                self.restore_final_video(state)
             return state
         state = WorkflowState(
             case_id=case_id,
@@ -50,23 +46,3 @@ class CheckpointStore:
     def write_event(self, name: str, payload: dict) -> None:
         target = self.artifacts.reports / f"{name}.json"
         self.artifacts.atomic_json(target, payload)
-
-    def restore_final_video(self, state: WorkflowState) -> None:
-        """Verify a completed selection and restore its missing published copy."""
-        selection = state.final_selection
-        candidate = state.candidates.get(selection.candidate_id) if selection else None
-        if (
-            candidate is None
-            or candidate.kind != CandidateKind.VIDEO
-            or candidate.status != CandidateStatus.FINALIZED
-        ):
-            raise RuntimeError("Completed checkpoint has no valid final selection")
-        source = self.artifacts.resolve(candidate.artifact_path)
-        media = candidate.inputs.get("service_result", {}).get("validated_media", {})
-        validation.validate_deliverable(
-            source, frames=int(media.get("frames", 240)), fps=int(media.get("fps", 24))
-        )
-        target = self.artifacts.publish_final_video(source, state.case_id)
-        if selection.deliverable_path != str(target):
-            selection.deliverable_path = str(target)
-            self.save(state)
