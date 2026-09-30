@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vtr-bench"
+version = "0.1.1"
+description = "Video text rendering benchmark, agentic I2V, and evaluation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = [
+  "httpx>=0.28,<0.29",
+  "numpy>=2.2,<3",
+  "openai>=2,<3",
+  "Pillow>=11,<13",
+  "pydantic>=2.10,<3",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.11", "pylint>=3.3", "build>=1.2"]
+
+[project.scripts]
+vtr-bench = "vtr_bench.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vtr_bench*", "agentic_i2v*"]
+
+[tool.setuptools.package-data]
+vtr_bench = ["data/*.json", "data/*.csv", "evaluation/prompts/*.txt", "evaluation/*.json"]
+
+[tool.ruff]
+line-length = 80
+target-version = "py312"
+extend-exclude = ["cache", "models", "videos", "generated_videos", "runs", "results"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+"vtr_bench/evaluation/**/*.py" = ["E402", "F401"]
+"agentic_i2v/service/vllm_backend.py" = ["F401"]
+
+[tool.pylint.main]
+ignore-paths = ["vtr_bench/evaluation", "agentic_i2v", "scripts"]
+
+[tool.pylint.messages_control]
+disable = ["too-few-public-methods", "too-many-locals", "too-many-arguments", "too-many-positional-arguments", "too-many-branches", "too-many-statements", "duplicate-code"]
+
+[tool.pylint.format]
+max-line-length = 80

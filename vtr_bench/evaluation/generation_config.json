@@ -1,0 +1,30 @@
+{
+  "tensor_parallel_size": 1,
+  "batch_size": 1,
+  "dtype": "bfloat16",
+  "video_fps": 2,
+  "max_model_len": 32768,
+  "enable_thinking": false,
+  "gpu_memory_utilization": 0.9,
+  "sampling": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 1.5,
+    "repetition_penalty": 1.0,
+    "frequency_penalty": 0.0
+  },
+  "request_seed": "not supplied",
+  "stop_sequences": "not supplied",
+  "structured_decoding": false,
+  "checklist_max_tokens": [
+    1024,
+    2048,
+    4096
+  ],
+  "checklist_escalation": "only after consecutive finish_reason=length",
+  "wer_max_tokens": 2048,
+  "max_attempts": 3,
+  "note": "Descriptive record; execution defaults are set by evaluate.py."
+}

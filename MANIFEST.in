@@ -1,0 +1,4 @@
+include README.md LICENSE pyproject.toml .env.example .gitignore release_manifest.json
+graft requirements
+graft .github
+global-exclude __pycache__ *.py[cod]

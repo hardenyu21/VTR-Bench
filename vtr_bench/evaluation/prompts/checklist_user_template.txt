@@ -1,0 +1,28 @@
+CHECKLIST
+
+C01: {question_en}
+C02: {question_en}
+C03: {question_en}
+C04: {question_en}
+C05: {question_en}
+C06: {question_en}
+C07: {question_en}
+C08: {question_en}
+C09: {question_en}
+C10: {question_en}
+C11: {question_en}
+C12: {question_en}
+C13: {question_en}
+C14: {question_en}
+C15: {question_en}
+C16: {question_en}
+C17: {question_en}
+C18: {question_en}
+C19: {question_en}
+C20: {question_en}
+
+OUTPUT EXAMPLE
+
+<answer>[{"id":"C01","answer":"yes"},{"id":"C02","answer":"no"},{"id":"C03","answer":"yes"},{"id":"C04","answer":"no"},{"id":"C05","answer":"yes"},{"id":"C06","answer":"no"},{"id":"C07","answer":"yes"},{"id":"C08","answer":"no"},{"id":"C09","answer":"yes"},{"id":"C10","answer":"no"},{"id":"C11","answer":"yes"},{"id":"C12","answer":"no"},{"id":"C13","answer":"yes"},{"id":"C14","answer":"no"},{"id":"C15","answer":"yes"},{"id":"C16","answer":"no"},{"id":"C17","answer":"yes"},{"id":"C18","answer":"no"},{"id":"C19","answer":"yes"},{"id":"C20","answer":"no"}]</answer>
+
+Based on the video and the checklist listed above, please output exactly one valid JSON array enclosed in <answer> and </answer>, following the format shown above. Do not output anything else.

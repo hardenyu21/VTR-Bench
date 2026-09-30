@@ -1,0 +1,36 @@
+SCENE DESCRIPTION
+
+{masked_scene_description}
+
+TARGET CARRIERS
+
+{public_targets_json}
+
+OUTPUT EXAMPLE
+
+<answer>
+{
+  "T01": {
+    "status": "transcribed",
+    "text": "VISIBLE TEXT",
+    "readability_note": ""
+  },
+  "T02": {
+    "status": "transcribed",
+    "text": "READABLE PORTION",
+    "readability_note": "Only part of the text can be reliably transcribed; the remaining characters cannot be distinguished."
+  },
+  "T03": {
+    "status": "text_unreadable",
+    "text": "",
+    "readability_note": "The text is visible, but individual characters cannot be distinguished."
+  },
+  "T04": {
+    "status": "carrier_not_found",
+    "text": "",
+    "readability_note": ""
+  }
+}
+</answer>
+
+Based on the video and the information listed above, please output exactly one valid JSON object enclosed in <answer> and </answer>, following the format shown above. Do not output anything before <answer> or after </answer>.

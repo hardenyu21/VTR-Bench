@@ -1,0 +1,6 @@
+# Reference H3 backend environment from the supplied agentic package.
+vllm==0.26.0
+vllm-omni==0.26.0
+av==18.0.0
+diffusers==0.38.0
+openai==2.53.0

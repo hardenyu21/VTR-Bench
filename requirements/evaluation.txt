@@ -1,0 +1,5 @@
+# Frozen evaluation environment; install in its own Python 3.12 environment.
+vllm==0.17.0
+torch==2.10.0
+transformers==5.8.0
+opencv-python-headless==5.0.0.93
