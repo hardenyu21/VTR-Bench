@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                 result = subprocess.run(
                     [
                         sys.executable,
-                        "-m", "agentic_i2v",
+                        "-m", "agentic_gen",
                         "--case-id", case_id,
                         "--prompt-file", str(prompt_file),
                     ],

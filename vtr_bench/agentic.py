@@ -17,16 +17,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.serve and args.case_id:
         parser.error("--serve and --case-id are mutually exclusive")
     if args.serve:
-        arguments = ["-m", "agentic_i2v.service.h3_server"]
+        arguments = ["-m", "agentic_gen.service.h3_server"]
     elif args.case_id:
-        arguments = ["-m", "agentic_i2v", "--case-id", args.case_id]
+        arguments = ["-m", "agentic_gen", "--case-id", args.case_id]
     else:
         endpoint = os.environ.get(
             "VTEXTBENCH_H3_SERVICE_URL", "http://127.0.0.1:18123"
         )
         arguments = [
             "-m",
-            "agentic_i2v.batch",
+            "agentic_gen.batch",
             "--worker-index",
             "0",
             "--worker-count",

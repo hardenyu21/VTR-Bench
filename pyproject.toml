@@ -25,7 +25,7 @@ dev = ["ruff>=0.11", "pylint>=3.3", "build>=1.2"]
 vtr-bench = "vtr_bench.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["vtr_bench*", "agentic_i2v*"]
+include = ["vtr_bench*", "agentic_gen*"]
 
 [tool.setuptools.package-data]
 vtr_bench = ["data/prompts.json", "data/checklists.json", "evaluation/prompts/*.txt", "evaluation/*.json"]
@@ -40,10 +40,10 @@ select = ["E4", "E7", "E9", "F"]
 
 [tool.ruff.lint.per-file-ignores]
 "vtr_bench/evaluation/**/*.py" = ["E402", "F401"]
-"agentic_i2v/service/vllm_backend.py" = ["F401"]
+"agentic_gen/service/vllm_backend.py" = ["F401"]
 
 [tool.pylint.main]
-ignore-paths = ["vtr_bench/evaluation", "agentic_i2v", "scripts"]
+ignore-paths = ["vtr_bench/evaluation", "agentic_gen", "scripts"]
 
 [tool.pylint.messages_control]
 disable = ["too-few-public-methods", "too-many-locals", "too-many-arguments", "too-many-positional-arguments", "too-many-branches", "too-many-statements", "duplicate-code"]

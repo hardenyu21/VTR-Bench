@@ -10,7 +10,7 @@ from typing import Any
 
 from PIL import Image
 
-from agentic_i2v.service.vllm_backend import (
+from agentic_gen.service.vllm_backend import (
     VideoGenerator,
     _audio_to_numpy,
     _extract_media,
