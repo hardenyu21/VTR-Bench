@@ -94,18 +94,20 @@ against the required text. Both metrics are reported on a 0–1 scale.
 
 ## Getting Started
 
-Create one environment for both evaluation and generation:
+Use [uv](https://docs.astral.sh/uv/getting-started/installation/) to create one
+environment for both evaluation and generation:
 
 ```bash
 git clone https://github.com/hardenyu21/VTR-Bench.git
 cd VTR-Bench
 
-conda create -n vtr-bench python=3.12 ffmpeg -c conda-forge -y
-conda activate vtr-bench
-python -m pip install -e . -r requirements/generation-reference.txt "opencv-python-headless==5.0.0.93"
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install -e . -r requirements/generation-reference.txt "opencv-python-headless==5.0.0.93"
 ```
 
-Set the model paths and API configuration for the workflows you will use:
+Install FFmpeg with your system package manager so that `ffmpeg` and `ffprobe`
+are available. Then set the model paths and API configuration:
 
 ```bash
 export VTR_BENCH_PROJECT_ROOT="$PWD"
@@ -241,7 +243,7 @@ should remain bound to loopback because it has no network authentication.
 
 ### 3. Generate videos
 
-In another shell, enter the repository, run `conda activate vtr-bench`, and export
+In another shell, enter the repository, run `source .venv/bin/activate`, and export
 the same configuration. Run one case, or omit the ID to process all 300 prompts:
 
 ```bash
