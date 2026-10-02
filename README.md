@@ -94,15 +94,34 @@ against the required text. Both metrics are reported on a 0–1 scale.
 
 ## Getting Started
 
+Create one environment for both evaluation and generation:
+
 ```bash
 git clone https://github.com/hardenyu21/VTR-Bench.git
 cd VTR-Bench
+
+conda create -n vtr-bench python=3.12 ffmpeg -c conda-forge -y
+conda activate vtr-bench
+python -m pip install -e . -r requirements/generation-reference.txt "opencv-python-headless==5.0.0.93"
 ```
 
-The reference runtimes use **Linux, Python 3.12, NVIDIA GPUs**, and
-`ffmpeg` / `ffprobe` on `PATH`. Install evaluation and generation in separate
-Python environments because they use different vLLM versions. Model checkpoints
-and API credentials are supplied by the user.
+Set the model paths and API configuration for the workflows you will use:
+
+```bash
+export VTR_BENCH_PROJECT_ROOT="$PWD"
+
+# Evaluation
+export VTR_EVALUATOR_MODEL=/path/to/evaluator-checkpoint
+
+# Agentic generation
+export VTEXTBENCH_MODELS_ROOT=/path/to/models
+export BAILIAN_API_KEY=YOUR_KEY
+export BAILIAN_BASE_URL=https://YOUR_WORKSPACE.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+export VLLM_WORKER_MULTIPROC_METHOD=spawn
+```
+
+See [.env.example](.env.example) for available settings. Export the variables in
+each shell; `.env.example` is not loaded automatically.
 
 ## Evaluation
 
@@ -123,12 +142,8 @@ assigned to that dimension.
 Prepare a local **Qwen3.8-27B** checkpoint, the evaluator used for the main
 results. **Qwen3.6-27B** is also supported.
 
-```bash
-python3.12 -m venv .venv-eval
-source .venv-eval/bin/activate
-python -m pip install -e . -r requirements/evaluation.txt
-export VTR_EVALUATOR_MODEL=/path/to/evaluator-checkpoint
-```
+Set `VTR_EVALUATOR_MODEL` to the checkpoint directory as shown in
+[Getting Started](#getting-started).
 
 ### 2. Evaluate your videos
 
@@ -166,8 +181,7 @@ outputs and logs in `details/`.
 <summary><b>Reference evaluation settings</b></summary>
 
 The evaluator uses BF16, tensor parallelism of 1, 2-FPS video sampling,
-non-thinking mode, and at most three attempts per case. The pinned runtime is
-specified in [requirements/evaluation.txt](requirements/evaluation.txt).
+non-thinking mode, and at most three attempts per case.
 
 </details>
 
@@ -211,20 +225,9 @@ Prepare the MiniMax-H3 FL2VA checkpoint at
 `/path/to/models/MiniMax-H3/FL2VA`. The reference video service uses **four GPUs**
 with sufficient memory and disables CPU offload by default.
 
-```bash
-python3.12 -m venv .venv-gen
-source .venv-gen/bin/activate
-python -m pip install -e . -r requirements/generation-reference.txt
-export VTR_BENCH_PROJECT_ROOT="$PWD"
-export VTEXTBENCH_MODELS_ROOT=/path/to/models
-export BAILIAN_API_KEY=YOUR_KEY
-export BAILIAN_BASE_URL=https://YOUR_WORKSPACE.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
-export VLLM_WORKER_MULTIPROC_METHOD=spawn
-```
-
-Use an API endpoint with access to the configured chat and image models. See
-[.env.example](.env.example) for available settings. Export the variables in each
-shell; `.env.example` is not loaded automatically.
+Use the environment and model paths configured in
+[Getting Started](#getting-started), with an API endpoint that supports the chat
+and image models above.
 
 ### 2. Start the video generator
 
@@ -238,8 +241,8 @@ should remain bound to loopback because it has no network authentication.
 
 ### 3. Generate videos
 
-In another shell, enter the repository, activate `.venv-gen`, and export the same
-configuration. Run one case, or omit the ID to process all 300 prompts:
+In another shell, enter the repository, run `conda activate vtr-bench`, and export
+the same configuration. Run one case, or omit the ID to process all 300 prompts:
 
 ```bash
 vtr-bench agentic --case-id AD-0001
