@@ -179,14 +179,6 @@ outputs and logs in `details/`.
   additional hypothesis tokens allowed. **Use `R+5` to match the main results.**
   Case scores are bounded to `[0, 1]` and averaged equally across videos.
 
-<details>
-<summary><b>Reference evaluation settings</b></summary>
-
-The evaluator uses BF16, tensor parallelism of 1, 2-FPS video sampling,
-non-thinking mode, and at most three attempts per case.
-
-</details>
-
 ## Agentic Generation
 
 The **Keyframe-Guided Agentic Framework** turns a generation prompt into a video
@@ -254,30 +246,3 @@ vtr-bench agentic
 Final videos are saved to
 `generated_videos/experiments/agentic/final_videos/<ID>.mp4`. Each case also retains
 image and video candidates, visual feedback, and the Director agent's decisions.
-
-<details>
-<summary><b>Generation settings and outputs</b></summary>
-
-The default output is **1344 × 768, 24 FPS, and 10 seconds**, with seed 42.
-The video generator produces 241 frames; the conditioning frame is discarded,
-leaving 240 frames. Audio is trimmed by the same 1/24-second offset.
-
-The default exploration limits are 20 actions, 30 API calls, and three video
-generations. A fallback can generate an additional candidate when exploration
-does not finalize a video; this is recorded in the case outputs.
-
-For non-agentic baseline generation, see the official
-[vLLM-Omni recipes](https://github.com/vllm-project/vllm-omni/tree/main/recipes).
-
-</details>
-
-## Acknowledgements
-
-Our implementation builds on [vLLM-Omni](https://github.com/vllm-project/vllm-omni)
-and [Qwen-Image](https://github.com/QwenLM/Qwen-Image). We thank their developers
-and the teams behind the evaluated video generation models.
-
-## License
-
-The code is released under the [Apache-2.0 License](LICENSE). External models,
-datasets, and dependencies retain their respective licenses and terms.
